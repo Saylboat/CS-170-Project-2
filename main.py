@@ -3,13 +3,15 @@ import numpy as np
 
 
 N = 200 #Number of data points
-M = 10 #Number of features for each data point
-#M = 100 #Number of features for each data point LARGE data set only
+#M = 10 #Number of features for each data point
+M = 100 #Number of features for each data point LARGE data set only
 
 #path to data set txt
-file = 'data/CS170_SMALLtestdata__96.txt'
+#file = 'data/CS170_SMALLtestdata__96.txt'
+#file = 'data/CS170_SMALLtestdata__108.txt'
+#file = 'data/CS170_SMALLtestdata__109.txt'
 #file = 'data/CS170_SMALLtestdata__110.txt'
-#file = 'data/CS170_LARGEtestdata__58.txt'
+file = 'data/CS170_LARGEtestdata__58.txt'
 #file = 'data/CS170_SMALLtestdata__SAMPLE.txt'
 
 def readdataset():
@@ -66,7 +68,7 @@ def nearestneighbor(traindata, testdata):
         distance = np.sqrt(np.sum(np.square(testdata[1:] - traindata[i, 1:])))#find euclidean distance
         distances.append([distance, i])
     distances = sorted(distances)
-    return distances[0][1]#return index of point with shortest distance
+    return distances[0]#return index of point with shortest distance
 
 def leave_one_out_crossvalidation(data, currentfeatures, j, choice):
     # Leave one out cross validation
@@ -82,14 +84,18 @@ def leave_one_out_crossvalidation(data, currentfeatures, j, choice):
         features.remove(j)
 
     closest = []
+    testclasses = []
+    trainclasses = []
     numcorrect = 0
     for i in range(len(data)):
         traindata, testdata = createtestsets(data, features, i)
-        closest.append(nearestneighbor(traindata, testdata))
-    for i in range(len(closest)):
-        if testdata[0] == traindata[closest[i]][0]:
+        closest = nearestneighbor(traindata, testdata)
+        testclasses.append(testdata[0])  # save class of test case
+        trainclasses.append(traindata[closest[1]][0])  # save class of nearest neighbor to test cas
+    for i in range(len(trainclasses)):
+        if testclasses[i] == trainclasses[i]:  # Compare classes of test cases and classes of nearest neighbors
             numcorrect = numcorrect + 1
-    accuracy = float(numcorrect) / len(data) * 100
+    accuracy = (float(numcorrect) / len(data)) * 100
     return accuracy
 
 def backwardsselection(data, choice):
@@ -139,14 +145,17 @@ def forwardselection(data, choice):
         print()
 
 def holdit(data, feature):
-
     closest = []
+    testclasses = []
+    trainclasses = []
     numcorrect = 0
     for i in range(len(data)):
-        traindata, testdata = createtestsets(data, [], i)
-        closest.append(nearestneighbor(traindata, testdata))
-    for i in range(len(closest)):
-        if testdata[0] == traindata[closest[i]][0]:
+        traindata, testdata = createtestsets(data, [6, 5, 4], i)
+        closest = nearestneighbor(traindata, testdata)
+        testclasses.append(testdata[0])  # save class of test case
+        trainclasses.append(traindata[closest[1]][0])  # save class of nearest neighbor to test cas
+    for i in range(len(trainclasses)):
+        if testclasses[i] == trainclasses[i]:  # Compare classes of test cases and classes of nearest neighbors
             numcorrect = numcorrect + 1
     accuracy = (float(numcorrect) / len(data)) * 100
     print(traindata[89])
