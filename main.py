@@ -1,5 +1,8 @@
 import os
 import numpy as np
+from collections import Counter
+from matplotlib import pyplot
+from mpl_toolkits.mplot3d import Axes3D
 
 
 N = 200 #Number of data points
@@ -60,6 +63,13 @@ def createtestsets(data, currentfeatures, entry):
 
     return traindata, testdata
 
+def defaultrate(data):
+    classes = []
+    classes = data[:, 0]
+    c = Counter(classes)
+    defrate = c.most_common(1)
+    return (defrate[0][1]/200) * 100
+
 def nearestneighbor(traindata, testdata):
     # nearest neighbors
 
@@ -70,9 +80,9 @@ def nearestneighbor(traindata, testdata):
     distances = sorted(distances)
     return distances[0]#return index of point with shortest distance
 
-def leave_one_out_crossvalidation(data, currentfeatures, j, choice):
+def leave_one_out_crossvalidation(data, currentfeatures, j, choice, prevnumwrong = 0):
     # Leave one out cross validation
-    # testdata is the data point thats left out
+    # testdata is the data you're testing
     # traindata is the data set with testdata removed
 
     features = []
@@ -87,14 +97,16 @@ def leave_one_out_crossvalidation(data, currentfeatures, j, choice):
     testclasses = []
     trainclasses = []
     numcorrect = 0
+    numwrong = 0
     for i in range(len(data)):
         traindata, testdata = createtestsets(data, features, i)
         closest = nearestneighbor(traindata, testdata)
-        testclasses.append(testdata[0])  # save class of test case
-        trainclasses.append(traindata[closest[1]][0])  # save class of nearest neighbor to test cas
-    for i in range(len(trainclasses)):
-        if testclasses[i] == trainclasses[i]:  # Compare classes of test cases and classes of nearest neighbors
+        if testdata[0] == traindata[closest[1]][0]:
             numcorrect = numcorrect + 1
+        else:
+            numwrong = numwrong + 1
+            if prevnumwrong == numwrong:
+                break
     accuracy = (float(numcorrect) / len(data)) * 100
     return accuracy
 
@@ -103,6 +115,7 @@ def backwardsselection(data, choice):
 
     print()
     print("Backward selection")
+    print()
     currentfeatures = []
     for i in range(1, M + 1):
         currentfeatures.append(i)
@@ -127,6 +140,7 @@ def forwardselection(data, choice):
 
     print()
     print("Forward selection")
+    print()
     currentfeatures = []
     for i in range(1, M + 1):
         print("On the ", i, "th level of the search tree", sep='')
@@ -134,7 +148,7 @@ def forwardselection(data, choice):
         bestaccuracy = 0
         for j in range(1, M + 1):
             if j not in currentfeatures:
-                accuracy = leave_one_out_crossvalidation(data, currentfeatures, j, choice)
+                accuracy  = leave_one_out_crossvalidation(data, currentfeatures, j, choice)
                 print("Considering adding feature", j, "with accuracy", accuracy)
                 if accuracy > bestaccuracy:
                     bestaccuracy = accuracy
@@ -144,23 +158,30 @@ def forwardselection(data, choice):
         print("Feature list: ", currentfeatures)
         print()
 
-def holdit(data, feature):
-    closest = []
-    testclasses = []
-    trainclasses = []
-    numcorrect = 0
-    for i in range(len(data)):
-        traindata, testdata = createtestsets(data, [6, 5, 4], i)
-        closest = nearestneighbor(traindata, testdata)
-        testclasses.append(testdata[0])  # save class of test case
-        trainclasses.append(traindata[closest[1]][0])  # save class of nearest neighbor to test cas
-    for i in range(len(trainclasses)):
-        if testclasses[i] == trainclasses[i]:  # Compare classes of test cases and classes of nearest neighbors
-            numcorrect = numcorrect + 1
-    accuracy = (float(numcorrect) / len(data)) * 100
-    print(traindata[89])
-    print(testdata[1:])
-    print(accuracy)
+def dereksalgorithm(data, choice):
+    # Derek's Algorithm for features
+
+    print()
+    print("Derek's Algorithm is Feature selection with pruning")
+    print()
+    currentfeatures = []
+    for i in range(1, M + 1):
+        print("On the ", i, "th level of the search tree", sep='')
+        feature = []
+        bestaccuracy = 0
+        numwrong = 0;
+        for j in range(1, M + 1):
+            if j not in currentfeatures:
+                accuracy = leave_one_out_crossvalidation(data, currentfeatures, j, choice, numwrong)
+                print("Considering adding feature", j, "with accuracy", accuracy)
+                if accuracy > bestaccuracy:
+                    bestaccuracy = accuracy
+                    feature = j
+                    numwrong = 200 - (bestaccuracy/100) * 200
+        currentfeatures.append(feature)
+        print('Level ', i, ': added feature ', feature, ' to current set with accuracy ', bestaccuracy, '%', sep='')
+        print("Feature list: ", currentfeatures)
+        print()
 
 def main():
 
@@ -173,10 +194,15 @@ def main():
     print()
     print("Enter which algorithm you want")
     choice = int(input())
+
+    print("Default rate is ", defaultrate(data), "%", sep='')
+
     if choice is 1:
         forwardselection(data, choice)
     elif choice is 2:
         backwardsselection(data, choice)
+    elif choice is 3:
+        dereksalgorithm(data, 1)
     else:
         print('ERROR: Invalid option')
     return
